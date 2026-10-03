@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  nexora-postgres:
+    image: postgres:16-alpine
+    container_name: nexora-postgres
+    environment:
+      POSTGRES_USER: nexora_user
+      POSTGRES_PASSWORD: nexora_password
+      POSTGRES_DB: nexora_platform_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexora_user -d nexora_platform_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nexora-network
+
+  nexora-redis:
+    image: redis:7-alpine
+    container_name: nexora-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nexora-network
+
+  nexora-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexora-api
+    environment:
+      DATABASE_URL: postgresql://nexora_user:nexora_password@nexora-postgres:5432/nexora_platform_db
+      REDIS_URL: redis://nexora-redis:6379/0
+      ENVIRONMENT: development
+      DEBUG: "True"
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      nexora-postgres:
+        condition: service_healthy
+      nexora-redis:
+        condition: service_healthy
+    networks:
+      - nexora-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  nexora-network:
+    driver: bridge
