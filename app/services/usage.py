@@ -46,6 +46,7 @@ class UsageService:
         # Increment usage
         usage = self.usage_repo.increment_usage(
             tenant_id=tenant_id,
+            subscription_id=str(subscription.id),
             metric_name=metric_name,
             amount=amount,
             period_start=period_start,
@@ -68,7 +69,14 @@ class UsageService:
         
         subscription = self.subscription_repo.get_any_active_subscription(tenant_id)
         if not subscription:
-            return {"status": "no_subscription"}
+            return {
+                "subscription_id": None,
+                "plan_name": None,
+                "current_period_start": None,
+                "current_period_end": None,
+                "metrics": {},
+                "status": "no_subscription",
+            }
         
         plan = self.plan_repo.get_by_id(subscription.plan_id)
         

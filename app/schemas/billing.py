@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, validator
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+from uuid import UUID
 
 
 class PlanTierEnum(str, Enum):
@@ -84,17 +85,15 @@ class PlanUpdate(BaseModel):
 
 
 class PlanResponse(PlanBase):
-    id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
     is_active: bool
     is_default: bool
     display_order: int
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_orm = True
-
-
 # Subscription Schemas
 class SubscriptionBase(BaseModel):
     plan_id: str
@@ -113,9 +112,11 @@ class SubscriptionUpdate(BaseModel):
 
 
 class SubscriptionResponse(BaseModel):
-    id: str
-    tenant_id: str
-    plan_id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    tenant_id: UUID
+    plan_id: UUID
     status: SubscriptionStatusEnum
     billing_cycle: BillingCycleEnum
     current_period_start: datetime
@@ -129,10 +130,6 @@ class SubscriptionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_orm = True
-
-
 # Invoice Schemas
 class InvoiceBase(BaseModel):
     subscription_id: str
@@ -148,9 +145,11 @@ class InvoiceCreate(InvoiceBase):
 
 
 class InvoiceResponse(BaseModel):
-    id: str
-    tenant_id: str
-    subscription_id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    tenant_id: UUID
+    subscription_id: UUID
     invoice_number: str
     status: InvoiceStatusEnum
     issue_date: datetime
@@ -166,10 +165,6 @@ class InvoiceResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_orm = True
-
-
 # Usage Record Schemas
 class UsageRecordBase(BaseModel):
     metric_name: str
@@ -182,19 +177,17 @@ class UsageRecordCreate(UsageRecordBase):
 
 
 class UsageRecordResponse(BaseModel):
-    id: str
-    tenant_id: str
-    subscription_id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    tenant_id: UUID
+    subscription_id: UUID
     metric_name: str
     metric_value: float
     billing_period_start: datetime
     billing_period_end: datetime
     created_at: datetime
     
-    class Config:
-        from_orm = True
-
-
 # Payment Method Schemas
 class PaymentMethodBase(BaseModel):
     stripe_payment_method_id: str
@@ -208,8 +201,10 @@ class PaymentMethodCreate(PaymentMethodBase):
 
 
 class PaymentMethodResponse(BaseModel):
-    id: str
-    tenant_id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    tenant_id: UUID
     payment_type: str
     card_brand: Optional[str]
     card_last_4: Optional[str]
@@ -222,10 +217,6 @@ class PaymentMethodResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_orm = True
-
-
 # Complex Response Schemas
 class BillingOverviewResponse(BaseModel):
     subscription: Optional[dict]
@@ -235,11 +226,12 @@ class BillingOverviewResponse(BaseModel):
 
 
 class CurrentUsageResponse(BaseModel):
-    subscription_id: str
-    plan_name: str
-    current_period_start: datetime
-    current_period_end: datetime
-    metrics: dict
+    subscription_id: Optional[UUID] = None
+    plan_name: Optional[str] = None
+    current_period_start: Optional[datetime] = None
+    current_period_end: Optional[datetime] = None
+    metrics: dict = Field(default_factory=dict)
+    status: Optional[str] = None
 
 
 class UpgradeSubscriptionRequest(BaseModel):

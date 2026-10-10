@@ -6,6 +6,7 @@ Validates request/response data for application endpoints.
 
 from typing import List, Optional, Annotated
 from datetime import datetime
+from uuid import UUID
 from pydantic import BaseModel, Field, StringConstraints, HttpUrl
 
 
@@ -30,8 +31,8 @@ class ApplicationUpdate(BaseModel):
 class ApplicationResponse(BaseModel):
     """Application response schema."""
 
-    id: str
-    tenant_id: str
+    id: UUID
+    tenant_id: UUID
     name: str
     description: Optional[str] = None
     status: str  # draft, active, suspended, archived
@@ -54,7 +55,7 @@ class APIKeyCreate(BaseModel):
 class APIKeyResponse(BaseModel):
     """API key response schema (without secret)."""
 
-    id: str
+    id: UUID
     name: str
     created_at: datetime
     is_revoked: bool
@@ -66,7 +67,7 @@ class APIKeyResponse(BaseModel):
 class APIKeySecret(BaseModel):
     """API key response with secret (shown only once)."""
 
-    id: str
+    id: UUID
     name: str
     key: str  # Plain key (only shown once)
     created_at: datetime
@@ -94,7 +95,7 @@ class OAuthProviderCreate(BaseModel):
 class OAuthProviderResponse(BaseModel):
     """OAuth provider response schema."""
 
-    id: str
+    id: UUID
     provider_name: str
     redirect_url: Optional[str] = None
     scopes: Optional[str] = None

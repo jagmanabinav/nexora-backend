@@ -82,6 +82,7 @@ class UsageRecordRepository:
     def increment_usage(
         self,
         tenant_id: str,
+        subscription_id: str,
         metric_name: str,
         amount: float,
         period_start: datetime,
@@ -94,6 +95,7 @@ class UsageRecordRepository:
             # Create new record
             record = UsageRecord(
                 tenant_id=tenant_id,
+                subscription_id=subscription_id,
                 metric_name=metric_name,
                 metric_value=amount,
                 billing_period_start=period_start,

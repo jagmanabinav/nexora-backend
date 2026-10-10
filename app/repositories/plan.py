@@ -50,7 +50,8 @@ class PlanRepository:
         """Update an existing plan"""
         plan = self.get_by_id(plan_id)
         for key, value in plan_data.items():
-            setattr(plan, key, value)
+            if value is not None:
+                setattr(plan, key, value)
         self.db_session.flush()
         return plan
     

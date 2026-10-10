@@ -2,7 +2,7 @@ from uuid import uuid4
 from sqlalchemy.dialects.postgresql import UUID as UUID_TYPE
 from sqlalchemy import Column, String, Integer, Float, ForeignKey, DateTime, Enum as SQLEnum, Text, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from app.models.base import Base, TimestampedModel
 
@@ -31,8 +31,17 @@ class Subscription(TimestampedModel):
     tenant_id = Column(UUID_TYPE(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     plan_id = Column(UUID_TYPE(as_uuid=True), ForeignKey("plans.id"), nullable=False, index=True)
     
-    status = Column(SQLEnum(SubscriptionStatus), nullable=False, default=SubscriptionStatus.TRIAL, index=True)
-    billing_cycle = Column(SQLEnum(BillingCycle), nullable=False, default=BillingCycle.MONTHLY)
+    status = Column(
+        SQLEnum(SubscriptionStatus, values_callable=lambda enum: [item.value for item in enum]),
+        nullable=False,
+        default=SubscriptionStatus.TRIAL,
+        index=True,
+    )
+    billing_cycle = Column(
+        SQLEnum(BillingCycle, values_callable=lambda enum: [item.value for item in enum]),
+        nullable=False,
+        default=BillingCycle.MONTHLY,
+    )
     
     # Subscription details
     current_period_start = Column(DateTime, nullable=False)
@@ -77,6 +86,9 @@ class Subscription(TimestampedModel):
     
     def days_until_renewal(self) -> int:
         if self.current_period_end:
-            delta = self.current_period_end - datetime.utcnow()
+            period_end = self.current_period_end
+            if period_end.tzinfo is None:
+                period_end = period_end.replace(tzinfo=timezone.utc)
+            delta = period_end - datetime.now(timezone.utc)
             return max(0, delta.days)
         return 0

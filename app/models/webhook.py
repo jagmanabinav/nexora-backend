@@ -47,6 +47,10 @@ class WebhookEndpoint(BaseTenantModel):
     
     __tablename__ = "webhook_endpoints"
     __allow_unmapped__ = True
+    __table_args__ = (
+        Index("idx_webhook_endpoints_tenant_active", "tenant_id", "is_active"),
+        Index("idx_webhook_endpoints_url", "url"),
+    )
     
     # Basic info
     name = Column(String(255), nullable=False)
@@ -71,11 +75,6 @@ class WebhookEndpoint(BaseTenantModel):
     deliveries = relationship("WebhookDelivery", back_populates="endpoint", cascade="all, delete-orphan")
     
     # Indexes
-    __table_args__ = (
-        Index("idx_webhook_endpoints_tenant_active", "tenant_id", "is_active"),
-        Index("idx_webhook_endpoints_url", "url"),
-    )
-    
     def should_deliver_event(self, event_type: str) -> bool:
         """Check if this endpoint should receive the event"""
         if not self.is_active:
@@ -95,11 +94,13 @@ class WebhookEndpoint(BaseTenantModel):
         ).hexdigest()
 
 
-class WebhookDelivery(TimestampedModel):
+class WebhookDelivery(Base):
     """Records of webhook delivery attempts"""
     
     __tablename__ = "webhook_deliveries"
     __allow_unmapped__ = True
+
+    id = Column(UUID_TYPE(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     
     # Relationship
     endpoint_id = Column(UUID_TYPE(as_uuid=True), ForeignKey("webhook_endpoints.id", ondelete="CASCADE"), nullable=False)

@@ -33,7 +33,7 @@ class AuditLogRepository:
     ) -> AuditLog:
         """Create an audit log entry"""
         audit = AuditLog(
-            id=uuid4(),
+            id=generate_id(),
             tenant_id=tenant_id,
             action=action,
             resource_type=resource_type,

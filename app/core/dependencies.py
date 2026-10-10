@@ -3,7 +3,7 @@
 from typing import Annotated, Generator, Optional, List
 from uuid import UUID
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -38,12 +38,16 @@ class RequestContext:
         email: str,
         roles: Optional[List[str]] = None,
         permissions: Optional[List[str]] = None,
+        request_path: Optional[str] = None,
+        request_method: Optional[str] = None,
     ):
         self.user_id = user_id
         self.tenant_id = tenant_id
         self.email = email
         self.roles = roles or []
         self.permissions = permissions or []
+        self.request_path = request_path
+        self.request_method = request_method
 
     def has_permission(self, permission_code: str) -> bool:
         """Check if user has a permission."""
@@ -129,8 +133,12 @@ async def get_current_user_with_roles(
 
 
 async def get_request_context(
+    request: Request,
     authorization: Annotated[str, Header()] = None,
     session: Session = Depends(get_db_session),
 ) -> RequestContext:
     """Get request context with current user and their roles/permissions."""
-    return await get_current_user_with_roles(authorization, session)
+    context = await get_current_user_with_roles(authorization, session)
+    context.request_path = request.url.path
+    context.request_method = request.method
+    return context

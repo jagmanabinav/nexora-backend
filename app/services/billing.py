@@ -101,7 +101,9 @@ class BillingService:
         
         # Validate upgrade direction (basic check)
         plan_order = {"free": 0, "starter": 1, "professional": 2, "enterprise": 3}
-        if plan_order.get(old_plan.slug, 0) >= plan_order.get(new_plan.slug, 0):
+        old_tier = old_plan.tier.value if hasattr(old_plan.tier, "value") else old_plan.tier
+        new_tier = new_plan.tier.value if hasattr(new_plan.tier, "value") else new_plan.tier
+        if plan_order.get(old_tier, 0) >= plan_order.get(new_tier, 0):
             raise ValidationException("Can only upgrade to a higher tier plan")
         
         # Calculate prorated amount
@@ -216,7 +218,8 @@ class BillingService:
     def _generate_invoice_number(self, tenant_id: str) -> str:
         """Generate unique invoice number"""
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        return f"INV-{tenant_id[:8].upper()}-{timestamp}"
+        tenant_prefix = str(tenant_id).replace("-", "")[:8].upper()
+        return f"INV-{tenant_prefix}-{timestamp}"
     
     def get_billing_overview(self, tenant_id: str) -> Dict:
         """Get billing overview for a tenant"""
@@ -234,6 +237,9 @@ class BillingService:
                 pass
         
         recent_invoices = self.invoice_repo.list_by_subscription(subscription.id, tenant_id)[:5]
+        period_end = subscription.current_period_end
+        if period_end.tzinfo is None:
+            period_end = period_end.replace(tzinfo=datetime.now().astimezone().tzinfo)
         
         return {
             "subscription": {
@@ -242,7 +248,7 @@ class BillingService:
                 "plan_name": plan.name,
                 "billing_cycle": subscription.billing_cycle.value,
                 "current_period_start": subscription.current_period_start.isoformat(),
-                "current_period_end": subscription.current_period_end.isoformat(),
+                "current_period_end": period_end.isoformat(),
                 "days_until_renewal": subscription.days_until_renewal(),
                 "auto_renew": subscription.auto_renew,
             },

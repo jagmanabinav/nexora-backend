@@ -31,7 +31,7 @@ class DataExportRepository:
     ) -> DataExport:
         """Create a new data export request"""
         export = DataExport(
-            id=uuid4(),
+            id=generate_id(),
             tenant_id=tenant_id,
             format=format,
             requested_by=requested_by,

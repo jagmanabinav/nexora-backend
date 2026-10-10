@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from uuid import UUID
 from enum import Enum
 
 
@@ -38,7 +39,9 @@ class WebhookEndpointUpdate(BaseModel):
 
 class WebhookEndpointResponse(BaseModel):
     """Webhook endpoint response"""
-    id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
     name: str
     url: str
     description: Optional[str]
@@ -51,10 +54,12 @@ class WebhookEndpointResponse(BaseModel):
 
 class WebhookDeliveryResponse(BaseModel):
     """Webhook delivery record"""
-    id: str
-    endpoint_id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    endpoint_id: UUID
     event_type: str
-    event_id: str
+    event_id: UUID
     status: str
     http_status_code: Optional[int]
     error_message: Optional[str]
@@ -87,11 +92,13 @@ class AuditLogCreate(BaseModel):
 
 class AuditLogResponse(BaseModel):
     """Audit log response"""
-    id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
     action: str
     resource_type: str
     resource_id: Optional[str]
-    actor_user_id: Optional[str]
+    actor_user_id: Optional[UUID]
     actor_type: str
     actor_ip: Optional[str]
     status: str
@@ -146,7 +153,9 @@ class DataExportCreate(BaseModel):
 
 class DataExportResponse(BaseModel):
     """Data export response"""
-    id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
     format: str
     status: str
     total_records: Optional[int]

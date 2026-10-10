@@ -19,7 +19,11 @@ class Plan(TimestampedModel):
     
     name = Column(String(255), nullable=False, unique=True)
     slug = Column(String(50), nullable=False, unique=True)
-    tier = Column(SQLEnum(PlanTier), nullable=False, index=True)
+    tier = Column(
+        SQLEnum(PlanTier, values_callable=lambda enum: [item.value for item in enum]),
+        nullable=False,
+        index=True,
+    )
     description = Column(Text, nullable=True)
     
     # Pricing (USD)

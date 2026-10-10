@@ -1,10 +1,10 @@
 from enum import Enum
 from uuid import uuid4
 from sqlalchemy.dialects.postgresql import UUID as UUID_TYPE
-from sqlalchemy import String, DateTime, Text, Integer, Boolean, Column, Index
+from sqlalchemy import String, DateTime, Text, Integer, Boolean, Column, Index, ForeignKey
 from datetime import datetime, timezone
 
-from app.models.base import Base, BaseTenantModel
+from app.models.base import Base
 
 
 class DataExportFormat(str, Enum):
@@ -24,11 +24,19 @@ class DataExportStatus(str, Enum):
     EXPIRED = "expired"
 
 
-class DataExport(BaseTenantModel):
+class DataExport(Base):
     """User/tenant data export requests"""
     
     __tablename__ = "data_exports"
     __allow_unmapped__ = True
+
+    id = Column(UUID_TYPE(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
+    tenant_id = Column(
+        UUID_TYPE(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     
     # Request info
     format = Column(String(50), nullable=False)  # json, csv, xlsx, pdf

@@ -45,8 +45,8 @@ def create_webhook_endpoint(
     audit = AuditService(session)
     audit.log_webhook_created(
         tenant_id=context.tenant_id,
-        webhook_id=endpoint.id,
-        actor_user_id=current_user.id,
+        webhook_id=str(endpoint.id),
+        actor_user_id=current_user.user_id,
         request_path=context.request_path,
         request_method=context.request_method,
     )
@@ -133,7 +133,7 @@ def delete_webhook_endpoint(
     audit.log_webhook_deleted(
         tenant_id=context.tenant_id,
         webhook_id=endpoint_id,
-        actor_user_id=current_user.id,
+        actor_user_id=current_user.user_id,
         request_path=context.request_path,
         request_method=context.request_method,
     )
@@ -240,7 +240,7 @@ def create_data_export(
     
     export = service.create_export(
         tenant_id=context.tenant_id,
-        requested_by=current_user.id,
+        requested_by=current_user.user_id,
         format=payload.format,
         include_users=payload.include_users,
         include_subscriptions=payload.include_subscriptions,
@@ -259,8 +259,8 @@ def create_data_export(
     audit = AuditService(session)
     audit.log_data_export_requested(
         tenant_id=context.tenant_id,
-        export_id=export.id,
-        actor_user_id=current_user.id,
+        export_id=str(export.id),
+        actor_user_id=current_user.user_id,
         format=payload.format,
         request_path=context.request_path,
         request_method=context.request_method,

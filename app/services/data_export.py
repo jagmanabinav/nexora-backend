@@ -19,10 +19,17 @@ class DataExportService:
         # SECURITY FIX: Use secure storage configuration instead of /tmp
         # In production, this should be S3 or similar cloud storage
         import os
-        storage_path = os.getenv("DATA_EXPORT_STORAGE_PATH", "/var/nexora/exports")
+        from pathlib import Path
+
+        storage_path = Path(
+            os.getenv(
+                "DATA_EXPORT_STORAGE_PATH",
+                str(Path.home() / ".local" / "share" / "nexora" / "exports"),
+            )
+        ).expanduser()
         # Ensure directory has restrictive permissions (700)
         os.makedirs(storage_path, mode=0o700, exist_ok=True)
-        self.storage_base_path = storage_path
+        self.storage_base_path = str(storage_path)
         
         # Enable encryption for exported files
         self.encrypt_exports = os.getenv("DATA_EXPORT_ENCRYPTION", "true").lower() == "true"

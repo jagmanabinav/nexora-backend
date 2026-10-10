@@ -131,7 +131,7 @@ def create_access_token(
             minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
-    to_encode = {**subject, "exp": expire, "type": "access"}
+    to_encode = {**subject, "exp": expire, "type": "access", "jti": secrets.token_urlsafe(16)}
     encoded_jwt = jwt.encode(
         to_encode,
         settings.JWT_SECRET,
@@ -152,7 +152,7 @@ def create_refresh_token(
             days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS
         )
 
-    to_encode = {**subject, "exp": expire, "type": "refresh"}
+    to_encode = {**subject, "exp": expire, "type": "refresh", "jti": secrets.token_urlsafe(16)}
     encoded_jwt = jwt.encode(
         to_encode,
         settings.JWT_SECRET,

@@ -28,7 +28,12 @@ class Invoice(TimestampedModel):
     subscription_id = Column(UUID_TYPE(as_uuid=True), ForeignKey("subscriptions.id"), nullable=False, index=True)
     
     invoice_number = Column(String(50), nullable=False, unique=True, index=True)
-    status = Column(SQLEnum(InvoiceStatus), nullable=False, default=InvoiceStatus.DRAFT, index=True)
+    status = Column(
+        SQLEnum(InvoiceStatus, values_callable=lambda enum: [item.value for item in enum]),
+        nullable=False,
+        default=InvoiceStatus.DRAFT,
+        index=True,
+    )
     
     # Dates
     issue_date = Column(DateTime, nullable=False, default=datetime.utcnow)

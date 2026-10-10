@@ -94,11 +94,8 @@ nexora-backend/
 │   │   └── connection.py           # Database connection
 │   └── main.py                     # FastAPI app initialization
 ├── tests/
-│   ├── automated/
-│   │   └── test_comprehensive.py   # All-in-one test suite
-│   ├── unit/
-│   ├── integration/
-│   └── conftest.py
+│   ├── conftest.py                # Isolated test database and API fixtures
+│   └── test_api.py                # API integration tests
 ├── scripts/
 │   ├── seed_data.py               # Initial data seeding
 │   └── ...
@@ -152,15 +149,11 @@ nexora-backend/
 
 ### Automated Test Suite
 ```bash
-# Run all tests
-python tests/automated/test_comprehensive.py
+# Run the API integration suite
+python -m pytest
 
-# Run with pytest
-pytest tests/ -v
-
-# Run specific module tests
-pytest tests/unit/test_auth.py
-pytest tests/integration/test_api.py
+# Run a focused test group
+python -m pytest tests/test_api.py -k authentication
 ```
 
 ### Manual Testing with cURL
@@ -374,7 +367,7 @@ docker push registry.example.com/nexora-backend:latest
 - **API Reference**: [API_REFERENCE.md](./API_REFERENCE.md)
 - **Testing Guide**: [TESTING_GUIDE.md](./TESTING_GUIDE.md)
 - **Deployment**: [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
-- **Local Setup**: [LOCAL_TESTING_SETUP.md](./LOCAL_TESTING_SETUP.md)
+- **Local Setup**: See the [README.md](./README.md#local-quick-start)
 - **OpenAPI Docs**: http://localhost:8000/docs
 
 ## 📄 License

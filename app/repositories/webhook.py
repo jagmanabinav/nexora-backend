@@ -31,7 +31,7 @@ class WebhookEndpointRepository:
             secret = secrets.token_urlsafe(32)
         
         endpoint = WebhookEndpoint(
-            id=uuid4(),
+            id=generate_id(),
             tenant_id=tenant_id,
             name=name,
             url=url,
@@ -135,7 +135,7 @@ class WebhookDeliveryRepository:
     ) -> WebhookDelivery:
         """Create a new webhook delivery record"""
         delivery = WebhookDelivery(
-            id=uuid4(),
+            id=generate_id(),
             endpoint_id=endpoint_id,
             event_type=event_type,
             event_id=event_id,

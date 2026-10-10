@@ -180,8 +180,8 @@ def upgrade_subscription(
         )
         
         return {
-            "subscription": subscription,
-            "invoice": invoice.to_dict() if invoice else None,
+            "subscription": SubscriptionResponse.model_validate(subscription).model_dump(mode="json"),
+            "invoice": InvoiceResponse.model_validate(invoice).model_dump(mode="json") if invoice else None,
             "message": "Subscription upgraded successfully"
         }
     except ValidationException as e:
@@ -307,7 +307,7 @@ def record_payment(
             payment_method=payment_data.payment_method
         )
         return {
-            "invoice": invoice,
+            "invoice": InvoiceResponse.model_validate(invoice).model_dump(mode="json"),
             "message": "Payment recorded successfully"
         }
     except ValidationException as e:
@@ -330,7 +330,7 @@ def retry_payment(
         invoice_service = InvoiceService(db)
         invoice = invoice_service.retry_failed_payment(invoice_id, current_user.tenant_id)
         return {
-            "invoice": invoice,
+            "invoice": InvoiceResponse.model_validate(invoice).model_dump(mode="json"),
             "message": "Payment retry initiated"
         }
     except ValidationException as e:

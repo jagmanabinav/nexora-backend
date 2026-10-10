@@ -1,10 +1,10 @@
 from enum import Enum
 from uuid import uuid4
 from sqlalchemy.dialects.postgresql import UUID as UUID_TYPE
-from sqlalchemy import String, DateTime, JSON, Text, Index, Integer, Column
+from sqlalchemy import String, DateTime, JSON, Text, Index, Integer, Column, ForeignKey
 from datetime import datetime, timezone
 
-from app.models.base import Base, BaseTenantModel
+from app.models.base import Base
 
 
 class AuditAction(str, Enum):
@@ -70,11 +70,19 @@ class AuditAction(str, Enum):
     CUSTOM = "custom"
 
 
-class AuditLog(BaseTenantModel):
+class AuditLog(Base):
     """Complete audit trail of platform operations"""
     
     __tablename__ = "audit_logs"
     __allow_unmapped__ = True
+
+    id = Column(UUID_TYPE(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
+    tenant_id = Column(
+        UUID_TYPE(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     
     # Action info
     action = Column(String(100), nullable=False)

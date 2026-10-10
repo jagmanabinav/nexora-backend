@@ -6,13 +6,14 @@ Validates request/response data for role and permission endpoints.
 
 from typing import List, Optional, Annotated
 from datetime import datetime
+from uuid import UUID
 from pydantic import BaseModel, Field, StringConstraints
 
 
 class PermissionResponse(BaseModel):
     """Permission response schema."""
 
-    id: str
+    id: UUID
     code: str
     description: Optional[str] = None
 
@@ -39,8 +40,8 @@ class RoleUpdate(BaseModel):
 class RoleResponse(BaseModel):
     """Role response schema."""
 
-    id: str
-    tenant_id: str
+    id: UUID
+    tenant_id: UUID
     name: str
     description: Optional[str] = None
     status: str
@@ -67,11 +68,11 @@ class RolePermissionAssign(BaseModel):
 class UserRoleResponse(BaseModel):
     """User role response schema."""
 
-    id: str
-    user_id: str
-    role_id: str
+    id: UUID
+    user_id: UUID
+    role_id: UUID
     role_name: Optional[str] = None
-    tenant_id: str
+    tenant_id: UUID
     created_at: datetime
 
     class Config:

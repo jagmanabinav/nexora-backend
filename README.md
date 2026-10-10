@@ -10,38 +10,18 @@
 
 ---
 
-## 🚀 Quick Start
+## Local Quick Start
 
-### Installation (5 minutes)
+The local development environment uses PostgreSQL (no Docker required). Ensure the local PostgreSQL cluster is running and the ignored `.env` file contains the database URL and application secrets for your machine.
 
 ```bash
-# Clone repository
-git clone https://github.com/yourorg/nexora.git
-cd nexora/backend
-
-# Create environment
-python -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Generate secrets
-export JWT_SECRET=$(python -c "import secrets; print(secrets.token_urlsafe(32))")
-export ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
-
-# Configure
-cp .env.example .env
-
-# Migrate database
+cd nexora-backend
+source .venv/bin/activate
 alembic upgrade head
-
-# Start server
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 ```
 
-**API is now available at** `http://localhost:8000`  
-**Documentation at** `http://localhost:8000/docs` (Swagger UI)
+The API is available at `http://localhost:8001`; interactive documentation is at `http://localhost:8001/docs`. Do not commit `.env` or local database credentials.
 
 ---
 
@@ -438,31 +418,21 @@ See [PHASE10_RELEASE.md](./PHASE10_RELEASE.md) for comprehensive deployment guid
 ### Run All Tests
 
 ```bash
-# Basic test run
-pytest
+# Run the isolated API integration suite
+python -m pytest
 
-# With coverage report
-pytest --cov=app --cov-report=html
+# Run a focused group or produce a coverage report
+python -m pytest tests/test_api.py -k authentication
+python -m pytest --cov=app --cov-report=term-missing
 
-# With verbose output
-pytest -v
-
-# Specific test file
-pytest tests/test_auth.py
-
-# Specific test function
-pytest tests/test_auth.py::test_login_success
 ```
+
+Tests use an isolated in-memory database and do not modify local PostgreSQL. See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for details.
 
 ### Test Coverage
 
 ```
-Tests: 150+ test cases across all phases
-├── Unit Tests: 80+ tests
-├── Integration Tests: 35+ tests
-├── Security Tests: 10+ tests
-├── Performance Tests: 5+ benchmarks
-└── Coverage: 85%+ code coverage
+API integration tests cover authentication, RBAC, applications, billing, webhooks, audit logs, and exports.
 ```
 
 ### Test Suites

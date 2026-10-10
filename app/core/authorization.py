@@ -6,13 +6,14 @@ Provides authorization checks for endpoints based on roles and permissions.
 
 from typing import Callable, List, Optional
 from functools import wraps
+import inspect
 from fastapi import HTTPException, status
 
 from app.core.dependencies import RequestContext
 from app.core.exceptions import AuthorizationException
 
 
-def require_permission(permission_codes: List[str]):
+def require_permission(permission_codes: str | List[str]):
     """Decorator to require one or more permissions.
     
     User must have at least one of the specified permissions.
@@ -27,9 +28,8 @@ def require_permission(permission_codes: List[str]):
                     detail="Authentication required",
                 )
 
-            has_permission = any(
-                current_user.has_permission(code) for code in permission_codes
-            )
+            codes = [permission_codes] if isinstance(permission_codes, str) else permission_codes
+            has_permission = any(current_user.has_permission(code) for code in codes)
 
             if not has_permission:
                 raise HTTPException(
@@ -37,7 +37,8 @@ def require_permission(permission_codes: List[str]):
                     detail="Insufficient permissions",
                 )
 
-            return await func(*args, current_user=current_user, **kwargs)
+            result = func(*args, current_user=current_user, **kwargs)
+            return await result if inspect.isawaitable(result) else result
 
         return wrapper
 
