@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.models import (
     user,
     tenant,
+    tenant_application,
     role,
     permission,
     role_permission,
@@ -26,6 +27,7 @@ from app.models import (
     api_key,
     usage_record,
     webhook,
+    fabwash_invoice,
 )
 
 from app.api.v1 import router as api_v1_router

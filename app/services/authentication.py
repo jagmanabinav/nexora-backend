@@ -20,9 +20,20 @@ from app.core.security import (
     verify_password,
 )
 from app.models.user import User
+from app.core.constants import (
+    TENANT_STATUS_ACTIVE,
+    TENANT_STATUS_PENDING,
+    TENANT_STATUS_REJECTED,
+    USER_STATUS_ACTIVE,
+)
+from app.core.permissions import DEFAULT_PERMISSIONS, DEFAULT_ROLES
+from app.repositories.permission import PermissionRepository
 from app.repositories.refresh_token import RefreshTokenRepository
+from app.repositories.role import RoleRepository
 from app.repositories.tenant import TenantRepository
 from app.repositories.user import UserRepository
+from app.repositories.user_role import UserRoleRepository
+from app.services.subscription_access import subscription_expired
 
 
 class AuthenticationService:
@@ -38,12 +49,19 @@ class AuthenticationService:
         self,
         email: str,
         password: str,
-        first_name: str,
-        last_name: str,
+        first_name: Optional[str],
+        last_name: Optional[str],
         tenant_name: str,
         tenant_slug: str,
+        tenant_status: str = TENANT_STATUS_ACTIVE,
+        tenant_email: Optional[str] = None,
+        tenant_phone: Optional[str] = None,
+        issue_tokens: bool = True,
     ) -> dict:
         """Register a new user and create tenant."""
+        if tenant_slug == "nexora-platform":
+            raise ConflictException("Tenant slug 'nexora-platform' is reserved")
+
         # Check if tenant slug already exists
         existing_tenant = self.tenant_repo.get_by_slug(tenant_slug)
         if existing_tenant:
@@ -57,8 +75,11 @@ class AuthenticationService:
         # Create tenant
         tenant = self.tenant_repo.create(
             name=tenant_name,
-            slug=tenant_slug
+            slug=tenant_slug,
+            email=tenant_email,
+            phone=tenant_phone,
         )
+        tenant.status = tenant_status
 
         # Hash password and create user
         password_hash = hash_password(password)
@@ -70,8 +91,31 @@ class AuthenticationService:
             last_name=last_name
         )
 
-        # Generate tokens
-        tokens = self._generate_tokens(user)
+        permission_repo = PermissionRepository(self.db)
+        role_repo = RoleRepository(self.db)
+        tenant_roles = {}
+        for role_key in ("admin", "manager", "member"):
+            role_config = DEFAULT_ROLES[role_key]
+            role_permissions = []
+            for code in role_config["permissions"]:
+                permission = permission_repo.get_by_code(code)
+                if permission is None:
+                    permission = permission_repo.create(code, DEFAULT_PERMISSIONS[code])
+                role_permissions.append(permission)
+
+            tenant_role = role_repo.create(
+                str(tenant.id),
+                role_config["name"],
+                role_config["description"],
+            )
+            tenant_role.permissions = role_permissions
+            tenant_roles[role_key] = tenant_role
+
+        UserRoleRepository(self.db).assign(
+            str(user.id), str(tenant_roles["admin"].id), str(tenant.id)
+        )
+
+        tokens = self._generate_tokens(user) if issue_tokens else None
 
         return {
             "user": user,
@@ -103,6 +147,16 @@ class AuthenticationService:
         if not tenant:
             logger.error(f"Tenant not found: {user.tenant_id}")
             raise ResourceNotFoundException("Tenant", user.tenant_id)
+        if tenant.status == TENANT_STATUS_PENDING:
+            raise AuthenticationException("Company registration is awaiting Super Admin approval")
+        if tenant.status == TENANT_STATUS_REJECTED:
+            raise AuthenticationException("Company registration was not approved")
+        if tenant.status != TENANT_STATUS_ACTIVE or user.status != USER_STATUS_ACTIVE:
+            raise AuthenticationException("Account is inactive")
+        if subscription_expired(self.db, tenant.id):
+            raise AuthenticationException(
+                "Subscription expired. Renew your plan to continue."
+            )
 
         # Generate tokens
         tokens = self._generate_tokens(user)
@@ -133,6 +187,17 @@ class AuthenticationService:
         user = self.user_repo.get_by_tenant(tenant_id, user_id)
         if not user:
             raise AuthenticationException("User not found or tenant mismatch")
+        tenant = self.tenant_repo.get_by_id(tenant_id)
+        if (
+            not tenant
+            or tenant.status != TENANT_STATUS_ACTIVE
+            or user.status != USER_STATUS_ACTIVE
+        ):
+            raise AuthenticationException("Account is pending approval or inactive")
+        if subscription_expired(self.db, tenant_id):
+            raise AuthenticationException(
+                "Subscription expired. Renew your plan to continue."
+            )
 
         # Verify refresh token is active in database
         token_record = self.refresh_token_repo.get_active_by_token(refresh_token)

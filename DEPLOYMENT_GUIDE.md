@@ -36,6 +36,16 @@
 - [ ] Redis URL verified
 - [ ] CORS_ORIGINS configured
 
+### FabWash GST invoicing and subscriptions
+
+- [ ] Apply Alembic migrations through `012_fabwash_gst_invoices` before deploying the API.
+- [ ] Configure and verify each FabWash tenant's legal seller name, address, GSTIN, and state details before its first invoice.
+- [ ] Have the tenant verify buyer details, place of supply, SAC, reverse-charge applicability, and the applicable GST rate for each issued invoice. The application calculates tax splits and totals; it does not determine legal classification or tax rates.
+- [ ] Confirm the A4 invoice output and retain invoice records/backups according to the tenant's statutory retention policy.
+- [ ] Verify expired trials are rejected by login, refresh, and authenticated product APIs while subscription/plan renewal routes remain accessible.
+- [ ] Choose and configure a payment provider, merchant account, API credentials, webhook signature secret, and verified webhook URL. Payment confirmation and retry endpoints intentionally return HTTP 503 until a provider is integrated; do not represent offline transfers as paid through the API.
+- [ ] Configure production frontend/API domains, TLS, database, CORS origins, secrets, and monitoring for the actual deployment environment; local development settings are not production configuration.
+
 ### Security
 
 - [ ] SSL/TLS certificates obtained

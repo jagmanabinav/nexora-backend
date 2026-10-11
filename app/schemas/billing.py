@@ -15,6 +15,7 @@ class PlanTierEnum(str, Enum):
 class BillingCycleEnum(str, Enum):
     MONTHLY = "monthly"
     ANNUAL = "annual"
+    LIFETIME = "lifetime"
 
 
 class SubscriptionStatusEnum(str, Enum):
@@ -39,6 +40,7 @@ class InvoiceStatusEnum(str, Enum):
 class PlanBase(BaseModel):
     name: str
     slug: str
+    application_code: str = Field(default="nexora", min_length=1, max_length=100)
     tier: PlanTierEnum
     description: Optional[str] = None
     monthly_price: float = Field(ge=0)
@@ -64,6 +66,9 @@ class PlanCreate(PlanBase):
 
 
 class PlanUpdate(BaseModel):
+    slug: Optional[str] = None
+    application_code: Optional[str] = Field(None, min_length=1, max_length=100)
+    tier: Optional[PlanTierEnum] = None
     name: Optional[str] = None
     description: Optional[str] = None
     monthly_price: Optional[float] = None
@@ -81,6 +86,7 @@ class PlanUpdate(BaseModel):
     custom_domain: Optional[bool] = None
     api_access: Optional[bool] = None
     is_active: Optional[bool] = None
+    is_default: Optional[bool] = None
     display_order: Optional[int] = None
 
 

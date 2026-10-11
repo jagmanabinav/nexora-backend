@@ -18,10 +18,41 @@ The local development environment uses PostgreSQL (no Docker required). Ensure t
 cd nexora-backend
 source .venv/bin/activate
 alembic upgrade head
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-The API is available at `http://localhost:8001`; interactive documentation is at `http://localhost:8001/docs`. Do not commit `.env` or local database credentials.
+The local API runs on port `8000` at `http://localhost:8000`; interactive documentation is at `http://localhost:8000/docs`. Do not commit `.env` or local database credentials.
+
+## FabWash company applications
+
+Apply migrations through `012_fabwash_gst_invoices` before deploying the updated API. Public
+`POST /api/v1/tenant-applications` accepts company/owner details and a selected active plan;
+new accounts remain pending and cannot authenticate until a Super Admin reviews them.
+Approval activates the chosen subscription. Rejection records a reason and keeps the account
+disabled. Tenant Admins manage users through `GET/POST /api/v1/users`; user creation checks the
+active plan's `max_users` limit, including the owner.
+
+The Super Admin **Applications** registry creates application metadata only; it does not
+generate frontend or backend source code. Applications can be activated or deactivated
+(stored as `active` or `suspended`); the API does not expose application deletion.
+
+Provision the first platform Super Admin exactly once using secrets from your deployment secret
+manager (never commit these values):
+
+```bash
+export BOOTSTRAP_ADMIN_EMAIL=admin@your-company.example
+export BOOTSTRAP_ADMIN_PASSWORD='<strong unique secret>'
+export BOOTSTRAP_ADMIN_FIRST_NAME='Platform'
+export BOOTSTRAP_ADMIN_LAST_NAME='Administrator'
+python scripts/bootstrap_super_admin.py
+unset BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD
+unset BOOTSTRAP_ADMIN_FIRST_NAME BOOTSTRAP_ADMIN_LAST_NAME
+```
+
+The bootstrap is one-time, refuses an existing platform-admin permission assignment or an
+already populated reserved platform tenant, and stores a password hash. Configure `CORS_ORIGINS`
+to the deployed Admin and FabWash origins, and configure a billing provider before treating
+plan activation as paid billing; the approval flow does not collect payments.
 
 ---
 

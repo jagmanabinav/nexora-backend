@@ -11,6 +11,7 @@ class BillingCycle(str, Enum):
     """Billing cycle options"""
     MONTHLY = "monthly"
     ANNUAL = "annual"
+    LIFETIME = "lifetime"
 
 
 class SubscriptionStatus(str, Enum):

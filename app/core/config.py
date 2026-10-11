@@ -49,7 +49,7 @@ class Settings(BaseSettings):
             )
 
     # CORS
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://localhost:5173"
 
     # Logging
     LOG_LEVEL: str = "INFO"

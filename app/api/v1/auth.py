@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import RequestContext, get_current_user, get_db_session, get_request_id
-from app.core.exceptions import ConflictException, ValidationException
+from app.core.exceptions import AuthenticationException, ConflictException, ValidationException
 from app.schemas.auth import (
     TokenResponse,
     UserLoginRequest,
@@ -15,13 +15,26 @@ from app.schemas.auth import (
     UserResponse,
     TenantResponse,
 )
+from app.schemas.rbac import RoleResponse
 from app.schemas.response import SuccessResponse
 from app.services.authentication import AuthenticationService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
-@router.post("/register", response_model=SuccessResponse)
+def require_company_application():
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="Instant registration is disabled. Submit a company application to register.",
+    )
+
+
+@router.post(
+    "/register",
+    response_model=SuccessResponse,
+    responses={410: {"description": "Instant registration is disabled"}},
+    dependencies=[Depends(require_company_application)],
+)
 async def register(
     request: UserRegisterRequest,
     db: Session = Depends(get_db_session),
@@ -105,6 +118,16 @@ async def login(
             message="Login successful",
             request_id=request_id,
         )
+    except AuthenticationException as e:
+        if "Company registration" in str(e) or "Subscription expired" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=str(e),
+            )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -141,7 +164,16 @@ async def refresh(
             message="Token refreshed successfully",
             request_id=request_id,
         )
-    except Exception as e:
+    except AuthenticationException as e:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_403_FORBIDDEN
+                if "Subscription expired" in str(e)
+                else status.HTTP_401_UNAUTHORIZED
+            ),
+            detail=str(e) if "Subscription expired" in str(e) else "Token refresh failed",
+        )
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token refresh failed",
@@ -201,6 +233,20 @@ async def get_current_user_info(
                 detail="Tenant not found",
             )
 
+        from app.repositories.user_role import UserRoleRepository
+
+        user_roles = UserRoleRepository(db).get_user_roles(
+            str(current_user.user_id), str(current_user.tenant_id)
+        )
+        roles = [RoleResponse.model_validate(user_role.role).model_dump(mode="json") for user_role in user_roles]
+        permissions = sorted(
+            {
+                permission.code
+                for user_role in user_roles
+                for permission in user_role.role.permissions
+            }
+        )
+
         user_response = UserResponse.model_validate(user)
         tenant_response = TenantResponse.model_validate(tenant)
 
@@ -208,6 +254,8 @@ async def get_current_user_info(
             data={
                 "user": user_response.model_dump(),
                 "tenant": tenant_response.model_dump(),
+                "roles": roles,
+                "permissions": permissions,
             },
             message="User info retrieved successfully",
             request_id=request_id,

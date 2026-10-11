@@ -65,6 +65,12 @@ class RolePermissionAssign(BaseModel):
     permission_ids: List[str] = Field(..., description="List of permission IDs to assign")
 
 
+class UserRoleAssign(BaseModel):
+    """Schema for assigning a role to a tenant user."""
+
+    role_id: UUID
+
+
 class UserRoleResponse(BaseModel):
     """User role response schema."""
 

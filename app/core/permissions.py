@@ -38,12 +38,16 @@ class PermissionCode:
     APPLICATION_CREATE = "application:create"
     APPLICATION_READ = "application:read"
     APPLICATION_UPDATE = "application:update"
-    APPLICATION_DELETE = "application:delete"
     APPLICATION_LIST = "application:list"
 
     # Billing Management
     BILLING_READ = "billing:read"
     BILLING_UPDATE = "billing:update"
+
+    # Platform plan management
+    PLAN_CREATE = "admin:plan:create"
+    PLAN_UPDATE = "admin:plan:update"
+    TENANT_APPLICATION_REVIEW = "admin:tenant_application:review"
 
     # Audit Log Access
     AUDIT_LOG_READ = "audit_log:read"
@@ -75,11 +79,13 @@ DEFAULT_PERMISSIONS = {
     PermissionCode.APPLICATION_CREATE: "Create applications",
     PermissionCode.APPLICATION_READ: "View application details",
     PermissionCode.APPLICATION_UPDATE: "Update applications",
-    PermissionCode.APPLICATION_DELETE: "Delete applications",
     PermissionCode.APPLICATION_LIST: "List applications",
     #
     PermissionCode.BILLING_READ: "View billing information",
     PermissionCode.BILLING_UPDATE: "Update billing settings",
+    PermissionCode.PLAN_CREATE: "Create platform billing plans",
+    PermissionCode.PLAN_UPDATE: "Update platform billing plans",
+    PermissionCode.TENANT_APPLICATION_REVIEW: "Review tenant application registrations",
     #
     PermissionCode.AUDIT_LOG_READ: "View audit logs",
 }
@@ -111,10 +117,12 @@ DEFAULT_ROLES = {
             PermissionCode.APPLICATION_CREATE,
             PermissionCode.APPLICATION_READ,
             PermissionCode.APPLICATION_UPDATE,
-            PermissionCode.APPLICATION_DELETE,
             PermissionCode.APPLICATION_LIST,
             PermissionCode.BILLING_READ,
             PermissionCode.BILLING_UPDATE,
+            PermissionCode.PLAN_CREATE,
+            PermissionCode.PLAN_UPDATE,
+            PermissionCode.TENANT_APPLICATION_REVIEW,
             PermissionCode.AUDIT_LOG_READ,
         ],
     },
@@ -141,7 +149,6 @@ DEFAULT_ROLES = {
             PermissionCode.APPLICATION_CREATE,
             PermissionCode.APPLICATION_READ,
             PermissionCode.APPLICATION_UPDATE,
-            PermissionCode.APPLICATION_DELETE,
             PermissionCode.APPLICATION_LIST,
             PermissionCode.BILLING_READ,
             PermissionCode.BILLING_UPDATE,

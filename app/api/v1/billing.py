@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Query
 from typing import List, Optional
 from app.core.dependencies import get_current_user_with_roles
 from app.core.authorization import require_permission
@@ -20,6 +20,23 @@ from app.repositories.payment_method import PaymentMethodRepository
 from app.repositories.plan import PlanRepository
 from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, RequestContext
+from app.models.tenant import Tenant
+
+
+def _require_platform_super_admin(current_user: RequestContext, db: Session) -> None:
+    tenant = (
+        db.query(Tenant)
+        .filter(
+            Tenant.id == current_user.tenant_id,
+            Tenant.slug == "nexora-platform",
+        )
+        .first()
+    )
+    if not tenant or not current_user.has_role("Super Admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only a platform Super Admin may manage billing plans",
+        )
 
 
 router = APIRouter(tags=["billing"])
@@ -27,11 +44,14 @@ router = APIRouter(tags=["billing"])
 
 # Plans endpoints
 @router.get("/plans", response_model=List[PlanResponse])
-def list_plans(db: Session = Depends(get_db)):
-    """List all available pricing plans"""
+def list_plans(
+    application_code: Optional[str] = Query(default=None, min_length=1, max_length=100),
+    db: Session = Depends(get_db),
+):
+    """List active pricing plans, optionally scoped to an application."""
     try:
         plan_repo = PlanRepository(db)
-        plans = plan_repo.list()
+        plans = plan_repo.list(application_code=application_code)
         return plans
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -59,6 +79,7 @@ def create_plan(
 ):
     """Create a new pricing plan (admin only)"""
     try:
+        _require_platform_super_admin(current_user, db)
         plan_repo = PlanRepository(db)
         plan = plan_repo.create(plan_data.dict())
         db.commit()
@@ -78,6 +99,7 @@ def update_plan(
 ):
     """Update a pricing plan (admin only)"""
     try:
+        _require_platform_super_admin(current_user, db)
         plan_repo = PlanRepository(db)
         plan = plan_repo.update(plan_id, plan_data.dict(exclude_unset=True))
         db.commit()
@@ -295,51 +317,24 @@ def record_payment(
     invoice_id: str,
     payment_data: PaymentRecordRequest,
     current_user: RequestContext = Depends(get_current_user_with_roles),
-    db: Session = Depends(get_db)
 ):
-    """Record a payment for an invoice"""
-    try:
-        invoice_service = InvoiceService(db)
-        invoice = invoice_service.record_payment(
-            invoice_id=invoice_id,
-            tenant_id=current_user.tenant_id,
-            amount=payment_data.amount,
-            payment_method=payment_data.payment_method
-        )
-        return {
-            "invoice": InvoiceResponse.model_validate(invoice).model_dump(mode="json"),
-            "message": "Payment recorded successfully"
-        }
-    except ValidationException as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except ResourceNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+    """Reject self-reported payments until a payment provider is configured."""
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Payment confirmation is unavailable until a payment provider is configured.",
+    )
 
 
 @router.post("/invoices/{invoice_id}/retry", response_model=dict)
 def retry_payment(
     invoice_id: str,
     current_user: RequestContext = Depends(get_current_user_with_roles),
-    db: Session = Depends(get_db)
 ):
-    """Retry payment for a failed invoice"""
-    try:
-        invoice_service = InvoiceService(db)
-        invoice = invoice_service.retry_failed_payment(invoice_id, current_user.tenant_id)
-        return {
-            "invoice": InvoiceResponse.model_validate(invoice).model_dump(mode="json"),
-            "message": "Payment retry initiated"
-        }
-    except ValidationException as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except ResourceNotFoundException as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+    """Reject payment retries until a payment provider is configured."""
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Payment retries are unavailable until a payment provider is configured.",
+    )
 
 
 # Usage endpoints

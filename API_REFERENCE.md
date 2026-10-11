@@ -432,6 +432,10 @@ Soft-delete user (account preserved, access revoked).
 
 **Endpoint**: `GET /api/v1/plans`
 
+Plans are grouped by `application_code`. Pass `?application_code=fabwash` to return
+only FabWash plans; omit the parameter to list active plans for all applications.
+The plan response includes its `application_code`.
+
 **Response** (200 OK):
 ```json
 {
@@ -439,6 +443,7 @@ Soft-delete user (account preserved, access revoked).
     {
       "id": "plan_starter",
       "name": "Starter",
+      "application_code": "fabwash",
       "description": "For small teams",
       "price": 29.99,
       "currency": "USD",

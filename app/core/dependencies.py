@@ -9,7 +9,9 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.exceptions import AuthenticationException
 from app.core.security import decode_token, generate_request_id
+from app.core.constants import TENANT_STATUS_ACTIVE, USER_STATUS_ACTIVE
 from app.database.connection import get_db
+from app.services.subscription_access import subscription_expired
 
 
 async def get_request_id(
@@ -60,6 +62,8 @@ class RequestContext:
 
 async def get_current_user(
     authorization: Annotated[str, Header()] = None,
+    session: Session = Depends(get_db_session),
+    request: Request = None,
 ) -> RequestContext:
     """Get current user from JWT token (without roles/permissions)."""
     if not authorization:
@@ -89,6 +93,28 @@ async def get_current_user(
         if not all([user_id, tenant_id, email]):
             raise AuthenticationException("Invalid token payload")
 
+        from app.repositories.tenant import TenantRepository
+        from app.repositories.user import UserRepository
+
+        user = UserRepository(session).get_by_tenant(tenant_id, user_id)
+        tenant = TenantRepository(session).get_by_id(tenant_id)
+        if (
+            not user
+            or not tenant
+            or tenant.status != TENANT_STATUS_ACTIVE
+            or user.status != USER_STATUS_ACTIVE
+        ):
+            raise AuthenticationException("Account is pending approval or inactive")
+        renewal_paths = ("/api/v1/subscriptions", "/api/v1/plans")
+        if (
+            subscription_expired(session, tenant_id)
+            and (request is None or not request.url.path.startswith(renewal_paths))
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Subscription expired. Renew your plan to continue.",
+            )
+
         return RequestContext(
             user_id=user_id,
             tenant_id=tenant_id,
@@ -105,9 +131,10 @@ async def get_current_user(
 async def get_current_user_with_roles(
     authorization: Annotated[str, Header()] = None,
     session: Session = Depends(get_db_session),
+    request: Request = None,
 ) -> RequestContext:
     """Get current user with roles and permissions from JWT token."""
-    context = await get_current_user(authorization)
+    context = await get_current_user(authorization, session, request)
 
     # Fetch user roles and permissions from database
     from app.repositories.user_role import UserRoleRepository
@@ -138,7 +165,7 @@ async def get_request_context(
     session: Session = Depends(get_db_session),
 ) -> RequestContext:
     """Get request context with current user and their roles/permissions."""
-    context = await get_current_user_with_roles(authorization, session)
+    context = await get_current_user_with_roles(authorization, session, request)
     context.request_path = request.url.path
     context.request_method = request.method
     return context

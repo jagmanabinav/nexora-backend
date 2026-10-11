@@ -22,6 +22,8 @@ import app.main  # noqa: E402
 from app.core.dependencies import get_db, get_db_session  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.base import Base  # noqa: E402
+from app.services.authentication import AuthenticationService  # noqa: E402
+from scripts.bootstrap_super_admin import provision  # noqa: E402
 
 
 @compiles(PostgreSQLUUID, "sqlite")
@@ -99,7 +101,7 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 
 
 @pytest.fixture
-def registered_user(client: TestClient):
+def registered_user(client: TestClient, db_session: Session):
     """Register a fresh user and return the client, account data, and tokens."""
     import secrets
 
@@ -112,16 +114,47 @@ def registered_user(client: TestClient):
         "tenant_name": f"Pytest Tenant {suffix}",
         "tenant_slug": f"pytest-{suffix}",
     }
-    response = client.post("/api/v1/auth/register", json=account)
-    assert response.status_code == 200, response.text
-
-    result = response.json()["data"]
+    result = AuthenticationService(db_session).register(
+        email=account["email"],
+        password=account["password"],
+        first_name=account["first_name"],
+        last_name=account["last_name"],
+        tenant_name=account["tenant_name"],
+        tenant_slug=account["tenant_slug"],
+    )
+    db_session.commit()
     tokens = result["tokens"]
     client.headers["Authorization"] = f"Bearer {tokens['access_token']}"
     return {
         "client": client,
         "account": account,
-        "user": result["user"],
-        "tenant": result["tenant"],
+        "user": {"id": str(result["user"].id)},
+        "tenant": {
+            "id": str(result["tenant"].id),
+            "slug": result["tenant"].slug,
+        },
         "tokens": tokens,
     }
+
+
+@pytest.fixture
+def platform_admin(client: TestClient, db_session: Session):
+    """Provision a platform-only Super Admin for review endpoint tests."""
+    import secrets
+
+    suffix = secrets.token_hex(6)
+    account = {
+        "email": f"platform-{suffix}@example.com",
+        "password": "PlatformTest!2345",
+        "first_name": "Platform",
+        "last_name": "Admin",
+    }
+    provision(db_session, **account)
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": account["email"], "password": account["password"]},
+    )
+    assert response.status_code == 200, response.text
+    tokens = response.json()["data"]["tokens"]
+    client.headers["Authorization"] = f"Bearer {tokens['access_token']}"
+    return {"account": account, "tokens": tokens}

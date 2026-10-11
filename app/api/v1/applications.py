@@ -8,6 +8,8 @@ from typing import List, Annotated
 from fastapi import APIRouter, Depends, status, HTTPException
 
 from app.core.dependencies import get_current_user_with_roles, RequestContext, get_db_session
+from app.core.authorization import require_permission
+from app.core.permissions import PermissionCode
 from app.core.exceptions import ResourceNotFoundException, ValidationException
 from app.services.application import ApplicationService
 from app.schemas.applications import (
@@ -29,6 +31,7 @@ router = APIRouter(tags=["applications"])
 
 
 @router.get("/applications", response_model=List[ApplicationResponse])
+@require_permission(PermissionCode.APPLICATION_LIST)
 async def list_applications(
     current_user: Annotated[RequestContext, Depends(get_current_user_with_roles)] = None,
     session: Session = Depends(get_db_session),
@@ -40,6 +43,7 @@ async def list_applications(
 
 
 @router.post("/applications", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
+@require_permission(PermissionCode.APPLICATION_CREATE)
 async def create_application(
     app_data: ApplicationCreate,
     current_user: Annotated[RequestContext, Depends(get_current_user_with_roles)] = None,
@@ -60,6 +64,7 @@ async def create_application(
 
 
 @router.get("/applications/{app_id}", response_model=ApplicationResponse)
+@require_permission(PermissionCode.APPLICATION_READ)
 async def get_application(
     app_id: str,
     current_user: Annotated[RequestContext, Depends(get_current_user_with_roles)] = None,
@@ -75,6 +80,7 @@ async def get_application(
 
 
 @router.put("/applications/{app_id}", response_model=ApplicationResponse)
+@require_permission(PermissionCode.APPLICATION_UPDATE)
 async def update_application(
     app_id: str,
     app_data: ApplicationUpdate,
@@ -96,21 +102,8 @@ async def update_application(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.delete("/applications/{app_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_application(
-    app_id: str,
-    current_user: Annotated[RequestContext, Depends(get_current_user_with_roles)] = None,
-    session: Session = Depends(get_db_session),
-):
-    """Delete an application."""
-    try:
-        app_service = ApplicationService(session)
-        app_service.delete_application(app_id, str(current_user.tenant_id))
-    except ResourceNotFoundException as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-
 @router.post("/applications/{app_id}/activate", response_model=ApplicationResponse)
+@require_permission(PermissionCode.APPLICATION_UPDATE)
 async def activate_application(
     app_id: str,
     current_user: Annotated[RequestContext, Depends(get_current_user_with_roles)] = None,
@@ -126,6 +119,7 @@ async def activate_application(
 
 
 @router.post("/applications/{app_id}/suspend", response_model=ApplicationResponse)
+@require_permission(PermissionCode.APPLICATION_UPDATE)
 async def suspend_application(
     app_id: str,
     current_user: Annotated[RequestContext, Depends(get_current_user_with_roles)] = None,
@@ -144,6 +138,7 @@ async def suspend_application(
 
 
 @router.get("/applications/{app_id}/api-keys", response_model=List[APIKeyResponse])
+@require_permission(PermissionCode.APPLICATION_READ)
 async def list_api_keys(
     app_id: str,
     current_user: Annotated[RequestContext, Depends(get_current_user_with_roles)] = None,
@@ -159,6 +154,7 @@ async def list_api_keys(
 
 
 @router.post("/applications/{app_id}/api-keys", response_model=APIKeySecret, status_code=status.HTTP_201_CREATED)
+@require_permission(PermissionCode.APPLICATION_UPDATE)
 async def create_api_key(
     app_id: str,
     key_data: APIKeyCreate,
@@ -177,6 +173,7 @@ async def create_api_key(
 
 
 @router.delete("/api-keys/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
+@require_permission(PermissionCode.APPLICATION_UPDATE)
 async def revoke_api_key(
     key_id: str,
     current_user: Annotated[RequestContext, Depends(get_current_user_with_roles)] = None,
@@ -194,6 +191,7 @@ async def revoke_api_key(
 
 
 @router.get("/applications/{app_id}/oauth-providers", response_model=List[OAuthProviderResponse])
+@require_permission(PermissionCode.APPLICATION_READ)
 async def list_oauth_providers(
     app_id: str,
     current_user: Annotated[RequestContext, Depends(get_current_user_with_roles)] = None,
@@ -209,6 +207,7 @@ async def list_oauth_providers(
 
 
 @router.post("/applications/{app_id}/oauth-providers", response_model=OAuthProviderResponse, status_code=status.HTTP_201_CREATED)
+@require_permission(PermissionCode.APPLICATION_UPDATE)
 async def create_oauth_provider(
     app_id: str,
     provider_data: OAuthProviderCreate,

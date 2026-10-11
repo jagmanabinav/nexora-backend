@@ -79,11 +79,6 @@ class ApplicationService:
         self.session.commit()
         return application
 
-    def delete_application(self, app_id: str, tenant_id: str) -> None:
-        """Delete an application."""
-        self.app_repo.delete(app_id, tenant_id)
-        self.session.commit()
-
     def activate_application(self, app_id: str, tenant_id: str) -> Application:
         """Activate a draft application."""
         application = self.app_repo.get_by_id(app_id, tenant_id)

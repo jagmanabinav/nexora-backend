@@ -24,9 +24,12 @@ class PlanRepository:
             raise ResourceNotFoundException(f"Plan with slug {slug} not found")
         return plan
     
-    def list(self) -> List[Plan]:
-        """List all active plans ordered by display_order"""
-        return self.db_session.query(Plan).filter_by(is_active=True).order_by(Plan.display_order).all()
+    def list(self, application_code: Optional[str] = None) -> List[Plan]:
+        """List active plans, optionally scoped to an application."""
+        query = self.db_session.query(Plan).filter_by(is_active=True)
+        if application_code:
+            query = query.filter_by(application_code=application_code)
+        return query.order_by(Plan.display_order).all()
     
     def list_by_tier(self, tier: PlanTier) -> List[Plan]:
         """List plans by tier"""

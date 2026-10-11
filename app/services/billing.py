@@ -43,6 +43,14 @@ class BillingService:
         
         # Get the plan
         plan = self.plan_repo.get_by_id(plan_id)
+        if not plan.is_active:
+            raise ValidationException("Selected plan is not available")
+
+        if billing_cycle == BillingCycle.LIFETIME:
+            if plan.monthly_price or plan.annual_price or plan.setup_fee <= 0:
+                raise ValidationException("Selected plan does not offer lifetime billing")
+        elif billing_cycle == BillingCycle.ANNUAL and plan.annual_price <= 0:
+            raise ValidationException("Selected plan does not offer annual billing")
         
         # Calculate subscription period
         now = datetime.utcnow()
@@ -60,10 +68,14 @@ class BillingService:
             period_end = period_start + timedelta(days=30)
             monthly_price = plan.monthly_price
             annual_price = 0
-        else:  # ANNUAL
+        elif billing_cycle == BillingCycle.ANNUAL:
             period_end = period_start + timedelta(days=365)
             monthly_price = 0
             annual_price = plan.annual_price
+        else:
+            period_end = datetime(9999, 12, 31)
+            monthly_price = 0
+            annual_price = 0
         
         subscription_data = {
             "tenant_id": tenant_id,
@@ -79,7 +91,7 @@ class BillingService:
             "stripe_customer_id": stripe_customer_id,
             "stripe_subscription_id": stripe_subscription_id,
             "payment_method_id": payment_method_id,
-            "auto_renew": True,
+            "auto_renew": billing_cycle != BillingCycle.LIFETIME,
         }
         
         subscription = self.subscription_repo.create(subscription_data)

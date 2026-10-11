@@ -1,4 +1,13 @@
-from sqlalchemy import Column, String, Integer, Float, Text, Boolean, Enum as SQLEnum
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    Float,
+    Text,
+    Boolean,
+    Enum as SQLEnum,
+    UniqueConstraint,
+)
 from enum import Enum
 from app.models.base import Base, TimestampedModel
 
@@ -17,8 +26,9 @@ class Plan(TimestampedModel):
     __tablename__ = "plans"
     __allow_unmapped__ = True
     
-    name = Column(String(255), nullable=False, unique=True)
-    slug = Column(String(50), nullable=False, unique=True)
+    name = Column(String(255), nullable=False)
+    slug = Column(String(50), nullable=False)
+    application_code = Column(String(100), nullable=False, default="nexora", index=True)
     tier = Column(
         SQLEnum(PlanTier, values_callable=lambda enum: [item.value for item in enum]),
         nullable=False,
@@ -26,7 +36,7 @@ class Plan(TimestampedModel):
     )
     description = Column(Text, nullable=True)
     
-    # Pricing (USD)
+    # Pricing (INR)
     monthly_price = Column(Float, nullable=False, default=0.0)
     annual_price = Column(Float, nullable=False, default=0.0)
     setup_fee = Column(Float, nullable=False, default=0.0)
@@ -50,6 +60,11 @@ class Plan(TimestampedModel):
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     is_default = Column(Boolean, nullable=False, default=False)
     display_order = Column(Integer, nullable=False, default=0)
+
+    __table_args__ = (
+        UniqueConstraint("application_code", "name", name="uq_plans_application_name"),
+        UniqueConstraint("application_code", "slug", name="uq_plans_application_slug"),
+    )
     
     def __repr__(self):
         return f"<Plan(id={self.id}, name={self.name}, tier={self.tier})>"
@@ -59,6 +74,7 @@ class Plan(TimestampedModel):
             "id": str(self.id),
             "name": self.name,
             "slug": self.slug,
+            "application_code": self.application_code,
             "tier": self.tier,
             "description": self.description,
             "monthly_price": self.monthly_price,

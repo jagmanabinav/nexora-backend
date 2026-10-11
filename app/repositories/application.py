@@ -72,15 +72,6 @@ class ApplicationRepository:
         self.session.flush()
         return application
 
-    def delete(self, app_id: str, tenant_id: str) -> None:
-        """Delete an application."""
-        application = self.get_by_id(app_id, tenant_id)
-        if not application:
-            raise ResourceNotFoundException(f"Application {app_id} not found")
-
-        self.session.delete(application)
-        self.session.flush()
-
     def set_status(self, app_id: str, tenant_id: str, status: str) -> Application:
         """Set application status."""
         return self.update(app_id, tenant_id, status=status)
